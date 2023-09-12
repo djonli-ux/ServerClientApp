@@ -37,40 +37,36 @@ async Task RunProcessAsync()
             Console.WriteLine($"Connection opened for remote: {remoteEP.Address}:{remoteEP.Port}");
         }
 
-        // Запускаем обработку запроса с таймером
         _ = Task.Run(() => HandleRequest(remoteSocket));
     }
 }
 
 void HandleRequest(Socket remoteSocket)
 {
-    byte[] buffer = new byte[256];
-    int count = 0;
-    string message = string.Empty;
 
-    Timer timer = new Timer(120000); // Таймер на 2 минуты
-    timer.AutoReset = false; // Не повторять после истечения времени
-    timer.Elapsed += (sender, e) =>
+    while (true)
     {
-        // Закрываем соединение, если не получено сообщение в течение 2 минут
-        remoteSocket.Shutdown(SocketShutdown.Both);
-        remoteSocket.Close();
-        Console.WriteLine("Connection closed due to inactivity");
-    };
-    timer.Start();
+        byte[] buffer = new byte[256];
+        int count = 0;
+        string message = string.Empty;
 
-    do
-    {
-        count = remoteSocket.Receive(buffer);
-        message += Encoding.UTF8.GetString(buffer, 0, count);
+        do
+        {
+            count = remoteSocket.Receive(buffer);
+            message += Encoding.UTF8.GetString(buffer, 0, count);
+            if (message.Contains("quit"))
+            {
+                Console.WriteLine("\nReceived quit command. Closing the server.\n");
+                remoteSocket.Shutdown(SocketShutdown.Both);
+                remoteSocket.Close();
+                break;
+            }
 
-        // Сбросить таймер каждый раз, когда получаем данные
-        timer.Stop();
-        timer.Start();
-    } while (remoteSocket.Available > 0);
+        } while (remoteSocket.Available > 0);
 
-    Console.WriteLine($"{DateTime.Now.ToShortTimeString()}: {message}");
+        Console.WriteLine($"{DateTime.Now.ToShortTimeString()}: {message}");
 
-    string response = "Everything is ok!";
-    remoteSocket.Send(Encoding.UTF8.GetBytes(response));
+        string response = "Everything is ok!";
+        remoteSocket.Send(Encoding.UTF8.GetBytes(response)); 
+    }
 }

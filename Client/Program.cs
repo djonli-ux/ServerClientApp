@@ -7,7 +7,6 @@ using System.Text;
 
 const string serverIp = "127.0.0.1";   
 const int serverPort = 8080;
-bool isWork = true;
 
 Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 IPEndPoint serverEP = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
@@ -15,14 +14,13 @@ IPEndPoint serverEP = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
 try
 {
     socket.Connect(serverEP);
+    string? message = string.Empty;
 
-    while (isWork)
+    while (true)
     {
-        string? message = string.Empty;
         do
         {
-            Console.Clear();
-            Console.Write("Enter your message: ");
+            Console.Write("Enter your message (or type 'quit' to exit): ");
             message = Console.ReadLine();
         } while (string.IsNullOrWhiteSpace(message));
 
@@ -43,17 +41,13 @@ try
 
             Console.WriteLine($"Response from Server: {response}");
 
-            Console.WriteLine("\n\nIf u wanna exit the app press 'ESC' \n\n");
-
-            ConsoleKeyInfo keyInfo = Console.ReadKey();
-
-            if (keyInfo.Key == ConsoleKey.Escape)
-                isWork = false; 
-
-            if (!isWork)
+            if (message.Trim().ToLower() == "quit") 
             {
+                socket.Send(Encoding.UTF8.GetBytes("quit"));
+                Console.WriteLine("\nReceived quit command. Closing the server.\n");
                 socket.Shutdown(SocketShutdown.Both);
                 socket.Close();
+                break;
             }
         } 
     }
@@ -61,7 +55,6 @@ try
 catch (Exception ex)
 {
     Console.WriteLine($"ERROR: {ex.Message}");
-
 }
 
 Console.ReadLine();
